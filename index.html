@@ -2347,18 +2347,17 @@ html.cat-sin-scroll,html.cat-sin-scroll body{overflow:hidden}
     estrella: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.5 5.3 5.7.7-4.2 3.9 1.1 5.7L12 16.3 6.9 19.1 8 13.4 3.8 9.5l5.7-.7z"/></svg>'
   };
 
-  // Fotos de las secciones y los géneros: las manda el servidor en datos.fotosSecciones ({sección o género: url});
-  // si no llegan, éstas del CDN que ya sirve las fotos (las mismas composiciones).
-  const CDN = 'https://cdn.shopify.com/s/files/1/1041/0629/5590/files/';
+  // Fotos de las secciones y los géneros: sólo las que manda el servidor en datos.fotosSecciones ({sección o género: url}).
+  // Esta página la ve el cliente final: no lleva ninguna dirección de la tienda del proveedor, ni como respaldo.
   // prop: ancho / alto de la foto de cada sección, para pedirla del ancho que cubre la tarjeta sin estirarla.
   const SECCIONES = [
-    { clave: 'PERFUMES', nombre: 'Perfumes', foto: 'gs-fragancias-perfumes.jpg', prop: 1 },
-    { clave: 'PERFUMES 30ML', nombre: 'Miniaturas 30 ml', foto: 'gs-fragancias-miniaturas.jpg', prop: 1.5 },
-    { clave: "VICTORIA'S SECRET", nombre: "Victoria's Secret", foto: 'gs-fragancias-victorias-secret.jpg', prop: 1.5 },
-    { clave: 'DESODORANTES', nombre: 'Desodorantes', foto: 'gs-fragancias-sprays-ia.jpg', prop: 1.5 },
-    { clave: 'RELOJES', nombre: 'Relojes', foto: 'gs-rubro-relojes-ia.jpg', prop: 1.334 }
+    { clave: 'PERFUMES', nombre: 'Perfumes', prop: 1 },
+    { clave: 'PERFUMES 30ML', nombre: 'Miniaturas 30 ml', prop: 1.5 },
+    { clave: "VICTORIA'S SECRET", nombre: "Victoria's Secret", prop: 1.5 },
+    { clave: 'DESODORANTES', nombre: 'Desodorantes', prop: 1.5 },
+    { clave: 'RELOJES', nombre: 'Relojes', prop: 1.334 },
+    { clave: 'BEBIDAS', nombre: 'Bebidas', prop: 1.334 }
   ];
-  const FOTO_GENERO = { femenino: 'gs-genero-femenino.jpg', masculino: 'gs-genero-masculino.jpg', unisex: 'gs-genero-unisex.jpg' };
   // Proporción que se supone para una foto de sección que no está en la tabla: la más apaisada que se usa, con margen.
   const PROP_DESCONOCIDA = 1.6;
   // Encuadre de una foto de sección cuadrada en una tarjeta apaisada: los frascos están arriba del centro, y centrada
@@ -2597,7 +2596,7 @@ html.cat-sin-scroll,html.cat-sin-scroll body{overflow:hidden}
       if (!p._sec) return;
       if (!mapa[p._sec]) {
         const info = SECCION_POR_CLAVE[p._sec];
-        mapa[p._sec] = { clave: p._sec, nombre: p._secNombre, foto: info ? info.foto : '', prop: info ? info.prop : PROP_DESCONOCIDA, rango: info ? info.rango : 99, n: 0 };
+        mapa[p._sec] = { clave: p._sec, nombre: p._secNombre, prop: info ? info.prop : PROP_DESCONOCIDA, rango: info ? info.rango : 99, n: 0 };
       }
       mapa[p._sec].n++;
     });
@@ -2623,7 +2622,7 @@ html.cat-sin-scroll,html.cat-sin-scroll body{overflow:hidden}
     productos.forEach(function (p) {
       const g = String(p.genero || '').trim();
       if (!g) return;
-      if (!mapa[g]) mapa[g] = { nombre: g, foto: FOTO_GENERO[norm(g)] || '', n: 0 };
+      if (!mapa[g]) mapa[g] = { nombre: g, n: 0 };
       mapa[g].n++;
     });
     return Object.keys(mapa).map(function (k) { return mapa[k]; }).sort(function (a, b) { return comparar(a.nombre, b.nombre); });
@@ -2815,8 +2814,8 @@ html.cat-sin-scroll,html.cat-sin-scroll body{overflow:hidden}
         '</div></article>';
     }
 
-    function fotoSeccion(clave, archivo) {
-      return fotosSec[clave] || (archivo ? CDN + archivo : '');
+    function fotoSeccion(clave) {
+      return fotosSec[clave] || '';
     }
 
     // Cada foto se pide del ancho que necesita para cubrir su tarjeta (con la tarjeta más alta que la foto, manda el alto).
@@ -2825,7 +2824,7 @@ html.cat-sin-scroll,html.cat-sin-scroll body{overflow:hidden}
       const spans = columnasSecciones(secciones.length);
       return '<section class="cat-bloque" aria-labelledby="catTitSecs"><div class="cat-bloque-cab cat-revela"><div><p class="cat-ceja">Explorá</p><h2 class="cat-tit" id="catTitSecs">Nuestras secciones</h2></div></div>' +
         '<div class="cat-secs">' + secciones.map(function (s, i) {
-          const url = fotoSeccion(s.clave, s.foto);
+          const url = fotoSeccion(s.clave);
           const caja = cajaSeccion(spans, i);
           return '<button type="button" class="cat-sec' + (url ? '' : ' cat-sec-sinfoto') + '" data-sec="' + esc(s.clave) + '" aria-pressed="false" style="--i:' + i + ';--span:' + spans[i] + (s.prop <= 1.1 ? ';--pos:' + ENCUADRE_CUADRADA : '') + '">' +
             (url ? '<img ' + atributosCubrir(url, GS.anchoParaCubrir(caja.ancho, caja.alto, s.prop)) + ' alt="" loading="lazy" decoding="async">' : '') +
@@ -2857,7 +2856,7 @@ html.cat-sin-scroll,html.cat-sin-scroll body{overflow:hidden}
       const ancho = GS.anchoParaCubrir(caja.ancho, caja.alto, 1);
       return '<section class="cat-bloque" aria-labelledby="catTitGen"><div class="cat-bloque-cab cat-revela"><div><p class="cat-ceja">Género</p><h2 class="cat-tit" id="catTitGen">Para cada estilo</h2></div></div>' +
         '<div class="cat-gens cat-revela" role="group" aria-label="Filtrar por género" style="--n:' + generos.length + '">' + generos.map(function (g) {
-          const url = fotoSeccion(claveSeccion(g.nombre), g.foto);
+          const url = fotoSeccion(claveSeccion(g.nombre));
           return '<button type="button" class="cat-gen' + (url ? '' : ' cat-gen-sinfoto') + '" data-gen="' + esc(g.nombre) + '" aria-pressed="false">' +
             (url ? '<img ' + atributosCubrir(url, ancho) + ' alt="" loading="lazy" decoding="async">' : '') +
             '<b>' + esc(capital(g.nombre)) + '</b><small class="cat-gen-n">' + g.n + '</small></button>';
